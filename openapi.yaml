@@ -1,0 +1,338 @@
+swagger: "2.0"
+info:
+  description: |
+    This is the (unofficial) CircleCI V2 API for managing scheduled pipelines.
+  version: "1.0.0"
+  title: "CircleCI schedule V2 API"
+host: "circleci.com"
+basePath: "/api/v2"
+schemes:
+- "https"
+securityDefinitions:
+  api_token:
+    type: "apiKey"
+    name: "Circle-Token"
+    in: "header"
+security:
+  - api_token: []
+
+paths:
+  /project/{project-slug}/schedule:
+    post:
+      tags:
+      - "schedule"
+      summary: "Create a schedule"
+      description: ""
+      operationId: "addSchedule"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "project-slug"
+        in: "path"
+        description: |
+          Project slug in the form vcs-slug/org-name/repo-name.
+          The / characters may be URL-escaped.
+          Example: gh/CircleCI-Public/api-preview-docs
+        required: true
+        type: "string"
+      - in: "body"
+        name: "body"
+        description: "Schedule information (payload)"
+        required: true
+        schema:
+          $ref: "#/definitions/SchedulePayload"
+      responses:
+        "201":
+          description: "Successfully added"
+          schema:
+            $ref: "#/definitions/ScheduleInfo"
+        "400":
+          description: "Invalid input"
+          schema:
+            $ref: "#/definitions/Errored"
+    get:
+      tags:
+      - "schedule"
+      summary: "List schedules"
+      description: "Returns all schedules for this project."
+      operationId: "ListSchedules"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"      
+      parameters:
+      - name: "project-slug"
+        in: "path"
+        description: |
+          Project slug in the form vcs-slug/org-name/repo-name.
+          The / characters may be URL-escaped.
+          Example: gh/CircleCI-Public/api-preview-docs
+        required: true
+        type: "string"
+      - name: "page-token"
+        in: "query"
+        description: "A token to retrieve the next page of results."
+        required: true
+        type: "string"
+        default: "project"
+      responses:
+        "200":
+          description: "A sequence of schedules"
+          schema:
+            $ref: "#/definitions/SchedulesInfo"
+        "400":
+          description: "Invalid input"
+          schema:
+            $ref: "#/definitions/Errored"
+  /schedule/{id}:
+    get:
+      tags:
+      - "schedule"
+      summary: "Get a schedule"
+      description: "Get a schedule by ID."
+      operationId: "GetSchedule"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"      
+      parameters:
+      - name: "id"
+        in: "path"
+        type: "string"
+        format: "uuid"
+        required: true
+        description: "The unique ID of the schedule."
+      responses:
+        "200":
+          description: "A schedule object"
+          schema:
+            $ref: "#/definitions/ScheduleInfo"
+        "400":
+          description: "Invalid input"
+          schema:
+            $ref: "#/definitions/Errored"
+    patch:
+      tags:
+      - "schedule"
+      summary: "Update a schedule"
+      description: "Updates a schedule and returns the updatd schedule."
+      operationId: "UpdateSchedule"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"      
+      parameters:
+      - name: "id"
+        in: "path"
+        type: "string"
+        format: "uuid"
+        required: true
+        description: "The unique ID of the schedule."
+      - in: "body"
+        name: "body"
+        description: "Schedule information (payload)"
+        required: true
+        schema:
+          $ref: "#/definitions/SchedulePayload"
+      responses:
+        "200":
+          description: "A schedule object"
+          schema:
+            $ref: "#/definitions/ScheduleInfo"
+        "400":
+          description: "Invalid input"
+          schema:
+            $ref: "#/definitions/Errored"
+    delete:
+      tags:
+      - "schedule"
+      summary: "Delete a schedule"
+      description: "Delete a schedule by ID."
+      operationId: "DeleteSchedule"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"      
+      parameters:
+      - name: "id"
+        in: "path"
+        type: "string"
+        format: "uuid"
+        required: true
+        description: "The unique ID of the schedule."
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: "#/definitions/Deleted"
+        "400":
+          description: "Invalid input"
+          schema:
+            $ref: "#/definitions/Errored"
+definitions:
+  HourOfADay:
+    type: integer
+    minimum: 0
+    maximum: 24
+    exclusiveMaximum: true
+  DayOfAWeek:
+    type: string
+    enum:
+      - MON
+      - TUE
+      - WED
+      - THU
+      - FRI
+      - SAT
+      - SUN
+  DayOfAMonth:
+    type: integer
+    minimum: 1
+    maximum: 31
+  Month:
+    type: string
+    enum:
+      - JAN
+      - FEB
+      - MAR
+      - APR
+      - MAY
+      - JUN
+      - JUL
+      - AUG
+      - SEP
+      - OCT
+      - NOV
+      - DEC
+  User:
+    type: object
+    required:
+      - id
+      - login
+      - name
+    properties: 
+      id:
+        type: string
+        format: "uuid"
+        description: "The unique ID of the user."
+      login:
+        type: string
+        description: "The login information for the user."
+      name:
+        type: string
+        description: "The name of the user."
+  ScheduleBaseData:
+    type: object
+    properties: 
+      name:
+        type: "string"
+        description: "Name of the schedule."
+      description:
+        type: "string"
+        format: "secret"
+        description: "Description of the schedule."
+      parameters:
+        type: "object"
+        description: "Pipeline parameters represented as key-value pairs. Must contain branch or tag."
+        properties:
+          branch:
+            type: "string"
+          tag:
+            type: "string"
+      timetable:
+        type: "object"
+        description: "Timetable that specifies when a schedule triggers."
+        required:
+          - per-hour
+          - hours-of-day
+        properties:
+          per-hour:
+            type: integer
+            minimum: 1
+            maximum: 60
+            description: "Number of times a schedule triggers per hour, value must be between 1 and 60."
+          hours-of-day:
+            type: array
+            description: "Hours in a day in which the schedule triggers."
+            items:
+              $ref: "#/definitions/HourOfADay"
+          days-of-week:
+            type: array
+            description: "Days in a week in which the schedule triggers."
+            items:
+              $ref: "#/definitions/DayOfAWeek"
+          days-of-month:
+            type: array
+            description: "Days in a month in which the schedule triggers. This is mutually exclusive with days in a week."
+            items:
+              $ref: "#/definitions/DayOfAMonth"
+          months:
+            type: array
+            description: "Months in which the schedule triggers."
+            items:
+              $ref: "#/definitions/Month"
+  SchedulePayload:
+    allOf:
+      - $ref: "#/definitions/ScheduleBaseData"
+      - type: object
+        properties: 
+          attribution-actor:
+            type: "string"
+            enum:
+              - current
+              - system
+            description: "The attribution-actor of the scheduled pipeline."
+  ScheduleInfo:
+    allOf:
+      - $ref: "#/definitions/ScheduleBaseData"
+      - type: object
+        required:
+          - id
+          - created-at
+          - updated-at
+          - actor
+          - project-slug
+        properties: 
+          id:
+            type: "string"
+            format: "uuid"
+            description: "The unique ID of the schedule."
+          created-at:
+            type: "string"
+            format: "date-time"
+            description: "The date and time the schedule was created."
+          updated-at:
+            type: "string"
+            format: "date-time"
+            description: "The date and time the schedule was last updated."
+          actor:
+            $ref: "#/definitions/User"
+          project-slug:
+            type: string
+            description: "The project-slug for the schedule."
+  SchedulesInfo:
+    type: "object"
+    properties: 
+      items:
+        type: "array"
+        items:
+          $ref: '#/definitions/ScheduleInfo'  
+      next_page_token:
+        type: "string"
+  Deleted:
+    type: "object"
+    properties: 
+      message:
+        type: "string"
+        description: "A human-readable message"
+  Errored:
+    type: "object"
+    properties: 
+      message:
+        type: "string"
+        description: "Error message" 
+externalDocs:
+  description: "Find the official API document for CircleCI here"
+  url: "https://circleci.com/docs/api/v2/index.html#tag/Schedule"
