@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -167,6 +168,91 @@ type ScheduleBaseDataParameters struct {
 
 	// tag
 	Tag string `json:"tag,omitempty"`
+
+	// schedule base data parameters
+	ScheduleBaseDataParameters map[string]interface{} `json:"-"`
+}
+
+// UnmarshalJSON unmarshals this object with additional properties from JSON
+func (m *ScheduleBaseDataParameters) UnmarshalJSON(data []byte) error {
+	// stage 1, bind the properties
+	var stage1 struct {
+
+		// branch
+		Branch string `json:"branch,omitempty"`
+
+		// tag
+		Tag string `json:"tag,omitempty"`
+	}
+	if err := json.Unmarshal(data, &stage1); err != nil {
+		return err
+	}
+	var rcv ScheduleBaseDataParameters
+
+	rcv.Branch = stage1.Branch
+	rcv.Tag = stage1.Tag
+	*m = rcv
+
+	// stage 2, remove properties and add to map
+	stage2 := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &stage2); err != nil {
+		return err
+	}
+
+	delete(stage2, "branch")
+	delete(stage2, "tag")
+	// stage 3, add additional properties values
+	if len(stage2) > 0 {
+		result := make(map[string]interface{})
+		for k, v := range stage2 {
+			var toadd interface{}
+			if err := json.Unmarshal(v, &toadd); err != nil {
+				return err
+			}
+			result[k] = toadd
+		}
+		m.ScheduleBaseDataParameters = result
+	}
+
+	return nil
+}
+
+// MarshalJSON marshals this object with additional properties into a JSON object
+func (m ScheduleBaseDataParameters) MarshalJSON() ([]byte, error) {
+	var stage1 struct {
+
+		// branch
+		Branch string `json:"branch,omitempty"`
+
+		// tag
+		Tag string `json:"tag,omitempty"`
+	}
+
+	stage1.Branch = m.Branch
+	stage1.Tag = m.Tag
+
+	// make JSON object for known properties
+	props, err := json.Marshal(stage1)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(m.ScheduleBaseDataParameters) == 0 { // no additional properties
+		return props, nil
+	}
+
+	// make JSON object for the additional properties
+	additional, err := json.Marshal(m.ScheduleBaseDataParameters)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(props) < 3 { // "{}": only additional properties
+		return additional, nil
+	}
+
+	// concatenate the 2 objects
+	return swag.ConcatJSON(props, additional), nil
 }
 
 // Validate validates this schedule base data parameters

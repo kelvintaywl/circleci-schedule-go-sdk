@@ -241,6 +241,8 @@ definitions:
             type: "string"
           tag:
             type: "string"
+        additionalProperties:
+          type: object
       timetable:
         type: "object"
         description: "Timetable that specifies when a schedule triggers."
